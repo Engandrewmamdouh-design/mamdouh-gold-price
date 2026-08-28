@@ -1,6 +1,7 @@
 """
 سكريبت سحب أسعار الذهب من موقع آي صاغة (isagha.com)
 يقرأ أسعار عيار 24 و22 و21 و18 وجنيه الذهب، ويخزنها في ملف JSON
+يمكن جدولته للعمل كل 15-30 دقيقة عبر cron أو GitHub Actions
 """
 
 import requests
@@ -24,11 +25,20 @@ def fetch_gold_prices():
     response.raise_for_status()
 
     soup = BeautifulSoup(response.text, "html.parser")
+
     tables = soup.find_all("table")
     if not tables:
         raise ValueError("مفيش جداول اتلاقت في الصفحة - ممكن شكل الموقع اتغير")
 
-    gold_table = tables[0]
+    gold_table = None
+    for t in tables:
+        if "عيار 24" in t.get_text():
+            gold_table = t
+            break
+
+    if gold_table is None:
+        raise ValueError("مالقيتش جدول فيه 'عيار 24' - شكل الموقع اتغير، محتاج مراجعة")
+
     rows = gold_table.find_all("tr")[1:]
 
     prices = {}
